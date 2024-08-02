@@ -1,0 +1,7 @@
+﻿CREATE PROCEDURE [dbo].[sp_GetUserById]
+	 @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT * FROM Users WHERE Id = @Id
+END
