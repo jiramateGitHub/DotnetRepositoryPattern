@@ -1,14 +1,15 @@
 ﻿using Dapper;
+using Microsoft.Data.SqlClient;
 using RepositoryPattern.Helper;
 using RepositoryPattern.Models;
+using System.ComponentModel;
 using System.Data;
 
 namespace RepositoryPattern.Repository
 {
     public interface IUserRepository
     {
-        Task<User> GetUserByIdAsync(int id);
-        Task<User> CreateUserAsync(User user);
+        object User(RequestMessage<User> request);
     }
     public class UserRepository : IUserRepository
     {
@@ -19,34 +20,36 @@ namespace RepositoryPattern.Repository
             _dbHelper = dbHelper;
         }
 
-        public async Task<User> GetUserByIdAsync(int id)
+        public object User(RequestMessage<User> request)
         {
-            using (var connection = _dbHelper.CreateConnection())
+            ResponseMessage<List<object>> response = new ResponseMessage<List<object>>();
+            try
             {
-                return await connection.QueryFirstOrDefaultAsync<User>(
-                    "sp_GetUserById",
-                    new { Id = id },
-                    commandType: CommandType.StoredProcedure);
-            }
-        }
+                var p = new DynamicParameters();
+                p.Add("@Module", request.Module);
+                p.Add("@SessionEmpID", request.SessionEmpID);
 
-        public async Task<User> CreateUserAsync(User user)
-        {
-            using (var connection = _dbHelper.CreateConnection())
+                foreach (PropertyDescriptor prop in TypeDescriptor.GetProperties(request.body))
+                {
+                    p.Add($"@{prop.Name}", prop.GetValue(request.body));
+                }
+
+                p.Add("@StatusId", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                p.Add("@StatusText", dbType: DbType.String, direction: ParameterDirection.Output, size: 200);
+
+                using (var connection = _dbHelper.CreateConnection())
+                {
+                    response.body = connection.Query<object>("sp_User", p, commandType: CommandType.StoredProcedure).ToList();
+                    response.Status = (p.Get<int>("@StatusId") == 0 ? true : false);
+                    response.ErrorMessage = p.Get<string>("@StatusText");
+                }
+            }
+            catch (Exception ex)
             {
-                var parameters = new DynamicParameters();
-                parameters.Add("@Name", user.Name);
-                parameters.Add("@Email", user.Email);
-                parameters.Add("@Id", dbType: DbType.Int32, direction: ParameterDirection.Output);
-
-                await connection.ExecuteAsync(
-                    "sp_CreateUser",
-                    parameters,
-                    commandType: CommandType.StoredProcedure);
-
-                user.Id = parameters.Get<int>("@Id");
-                return user;
+                response.Status = false;
+                response.ErrorMessage = ex.Message;
             }
+            return response;
         }
     }
 }

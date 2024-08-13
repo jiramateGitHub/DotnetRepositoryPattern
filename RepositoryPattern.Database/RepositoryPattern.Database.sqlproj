@@ -67,5 +67,6 @@
     <Build Include="dbo\Tables\Products.sql" />
     <Build Include="dbo\SP_CreateUser.sql" />
     <Build Include="dbo\SP_GetUserById.sql" />
+    <Build Include="dbo\SP_User.sql" />
   </ItemGroup>
 </Project>

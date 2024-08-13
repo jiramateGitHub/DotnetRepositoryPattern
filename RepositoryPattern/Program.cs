@@ -16,6 +16,15 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<DatabaseHelper>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
+builder.Configuration
+    .SetBasePath(builder.Environment.ContentRootPath)
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
+
+ConfigHelper.Initialize(builder.Configuration);
+
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 

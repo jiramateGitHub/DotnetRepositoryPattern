@@ -1,9 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Azure.Core;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using RepositoryPattern.Models;
 using RepositoryPattern.Repository;
 
 namespace RepositoryPattern.Controllers
 {
+    //[Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class UserController : ControllerBase
@@ -15,22 +18,17 @@ namespace RepositoryPattern.Controllers
             _userRepository = userRepository;
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUser(int id)
+        [HttpPost("User")]
+        public IActionResult onPost_User([FromBody] RequestMessage<User> request)
         {
-            var user = await _userRepository.GetUserByIdAsync(id);
-            if (user == null)
+            if (request != null)
             {
-                return NotFound();
+                return Ok(_userRepository.User(request));
             }
-            return user;
-        }
-
-        [HttpPost]
-        public async Task<ActionResult<User>> CreateUser(User user)
-        {
-            var createdUser = await _userRepository.CreateUserAsync(user);
-            return CreatedAtAction(nameof(GetUser), new { id = createdUser.Id }, createdUser);
+            else
+            {
+                return BadRequest(new ResponseMessage<int>() { Status = false, ErrorMessage = "Access denied" });
+            }
         }
     }
 }
